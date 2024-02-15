@@ -1,31 +1,31 @@
 #!/bin/bash
 
-# Establecer el directorio fuente como el directorio actual
+# Set the source directory as the current directory
 sourceDir=$(pwd)
 
-# Establecer el directorio de destino relativo
+# Set the relative target directory
 targetDir="../fotoExtract"
 
-# Inicializar contadores
+# Initialize counters
 totalFiles=0
 copiedFiles=0
 noDateFiles=0
 
-# Crear el directorio de destino si no existe
+# Create the target directory if it doesn't exist
 if [ ! -d "$targetDir" ]; then
     mkdir "$targetDir"
 fi
 
-# Habilitar la búsqueda sin distinción entre mayúsculas y minúsculas
+# Enable case-insensitive globbing
 shopt -s nocaseglob
 shopt -s globstar
 
-# Declarar un array asociativo para realizar un seguimiento de los nombres de archivo copiados
+# Declare an associative array to track copied file names
 declare -A copiedFileNames
 
-# Recorrer los tipos de archivo especificados
+# Iterate over specified file types
 for ext in jpeg jpg png gif bmp avi mp4 mov; do
-    # Recorrer todos los archivos con la extensión actual en el directorio actual y sus subdirectorios
+    # Iterate over all files with the current extension in the current directory and its subdirectories
     for file in "$sourceDir"/**/*."$ext"; do
         if [ -f "$file" ]; then
             totalFiles=$((totalFiles + 1))
@@ -33,27 +33,27 @@ for ext in jpeg jpg png gif bmp avi mp4 mov; do
     done
 done
 
-echo "Número total de archivos de imagen y video encontrados: $totalFiles"
+echo "Total number of image and video files found: $totalFiles"
 
-# Recorrer nuevamente los tipos de archivo especificados
+# Iterate over specified file types again
 for ext in jpeg jpg png gif bmp avi mp4 mov; do
-    # Recorrer todos los archivos con la extensión actual en el directorio actual y sus subdirectorios
+    # Iterate over all files with the current extension in the current directory and its subdirectories
     for file in "$sourceDir"/**/*."$ext"; do
         if [ -f "$file" ]; then
-            # Obtener el nombre de archivo y su parte sin extensión
+            # Get the file name and its part without extension
             filename=$(basename -- "$file")
             filename_noext="${filename%.*}"
 
-            # Inicializar variables para el año, mes y bandera de año encontrado
+            # Initialize variables for year, month, and found_year flag
             year=""
             month=""
             day=""
             found_year=false
 
-            # Recorrer los primeros cuatro caracteres del nombre del archivo
+            # Iterate over the first four characters of the file name
             for (( i=0; i<${#filename_noext}; i++ )); do
                 chunk="${filename_noext:$i:4}"
-                # Verificar si el chunk es un número de cuatro dígitos y está en el rango deseado
+                # Check if the chunk is a four-digit number within the desired range
                 if [[ "$chunk" =~ ^[0-9]{4}$ && "$chunk" -ge 1950 && "$chunk" -le $(date +'%Y') ]]; then
                     year="$chunk"
                     found_year=true
@@ -61,12 +61,12 @@ for ext in jpeg jpg png gif bmp avi mp4 mov; do
                 fi
             done
 
-            # Si se encontró un año válido
+            # If a valid year was found
             if [ "$found_year" = true ]; then
-                # Recorrer los siguientes dos caracteres para el mes
+                # Iterate over the next two characters for the month
                 for (( j=i+4; j<${#filename_noext}; j++ )); do
                     chunk="${filename_noext:$j:2}"
-                    # Verificar si el chunk es un número de dos dígitos
+                    # Check if the chunk is a two-digit number
                     if [[ "$chunk" =~ ^[0-9]{2}$ ]]; then
                         month="$chunk"
                         break
@@ -74,34 +74,34 @@ for ext in jpeg jpg png gif bmp avi mp4 mov; do
                 done
             fi
 
-            # Si se encontraron un año y un mes válidos
+            # If valid year and month were found
             if [ ! -z "$year" ] && [ ! -z "$month" ]; then
-                # Crear una ruta de subdirectorio objetivo basada en el año y el mes
+                # Create a target subdirectory path based on the year and month
                 targetSubDir="$targetDir/$year/$month"
                 if [ ! -d "$targetSubDir" ]; then
                     mkdir -p "$targetSubDir"
                 fi
 
-                # Verificar si el nombre de archivo ya se ha copiado para evitar duplicados
+                # Check if the file name has already been copied to avoid duplicates
                 if [ -z "${copiedFileNames[$filename]}" ]; then
-                    # Copiar el archivo al subdirectorio de destino
+                    # Copy the file to the target subdirectory
                     cp "$file" "$targetSubDir"
                     copiedFileNames[$filename]=1
                     copiedFiles=$((copiedFiles + 1))
-                    echo "Archivo $filename copiado y pegado en $targetSubDir ($copiedFiles de $totalFiles)"
+                    echo "File $filename copied and pasted to $targetSubDir ($copiedFiles of $totalFiles)"
                 fi
             else
-                # Si no se encontró un año o un mes válidos, copiar el archivo a la carpeta sinFecha
+                # If a valid year or month was not found, copy the file to the sinFecha folder
                 targetSubDir="$targetDir/sinFecha"
                 if [ -z "${copiedFileNames[$filename]}" ]; then
                     cp "$file" "$targetSubDir"
                     copiedFileNames[$filename]=1
                     noDateFiles=$((noDateFiles + 1))
-                    echo "Archivo $filename copiado en $targetSubDir (Archivos sin fecha: $noDateFiles)"
+                    echo "File $filename copied to $targetSubDir (Files without date: $noDateFiles)"
                 fi
             fi
         fi
     done
 done
 
-echo "Proceso completado."
+echo "Process completed."
